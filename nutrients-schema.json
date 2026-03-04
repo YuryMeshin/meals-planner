@@ -1,0 +1,31 @@
+{
+    "CALORIES": [
+        "LOWER",
+        "UPPER"
+    ],
+    "PROTEIN": [
+        "LOWER",
+        "UPPER"
+    ],
+    "CARBS": [
+        "LOWER",
+        "UPPER"
+    ],
+    "FATS": [
+        "LOWER",
+        "UPPER"
+    ],
+    "FIBER": [
+        "LOWER",
+        "UPPER"
+    ],
+    "SUGAR": [
+        "UPPER"
+    ],
+    "SODIUM": [
+        "UPPER"
+    ],
+    "SATURATED-FAT": [
+        "UPPER"
+    ]
+}
