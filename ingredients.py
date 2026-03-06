@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Self
 from dataclasses import dataclass
 from units import Unit, NutritionUnit
 
@@ -17,7 +17,7 @@ class Ingredient():
         }
 
     @classmethod
-    def from_dict(cls, ingredient: dict[str, Any]) -> Ingredient:
+    def from_dict(cls, ingredient: dict[str, Any]) -> Self:
         if "NAME" not in ingredient:
             raise ValueError("No name for ingredient given")
         
@@ -46,5 +46,5 @@ class IngredientsBook():
         self._ingredients[len(self._ingredients)] = ingredient
 
     @classmethod
-    def from_dict(cls, book: dict[str, dict[str, Any]]) -> IngredientsBook:
+    def from_dict(cls, book: dict[str, dict[str, Any]]) -> Self:
         return cls({int(key): Ingredient.from_dict(ing) for key, ing in book.items()})
