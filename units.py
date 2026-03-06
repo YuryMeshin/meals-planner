@@ -38,6 +38,9 @@ class Unit():
             "QUANTITY": self.QUANTITY,
             "UNIT": self.UNIT
         }
+    
+    def __str__(self) -> str:
+        return f"{self.QUANTITY:.3f} {self.UNIT}(s)"
 
 
 @dataclass(frozen=True)
