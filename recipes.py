@@ -1,3 +1,4 @@
+from typing import Any
 from dataclasses import dataclass
 from functools import cached_property
 from enum import Enum
@@ -13,18 +14,35 @@ class MealKind(Enum):
 
 
 @dataclass(frozen=True)
+class RecipeIngredient():
+    INGREDIENT: Ingredient
+    QUANTITY: float
+
+    def as_dict(self) -> dict[str, float]:
+        return {self.INGREDIENT.id: self.QUANTITY}
+
+
+@dataclass(frozen=True)
 class Recipe():
-    INGREDIENTS: tuple[tuple[Ingredient, float]]
+    INGREDIENTS: tuple[RecipeIngredient, ...]
     KIND: MealKind
     PREP_TIME: int
-    TAGS: tuple[str]
+    TAGS: tuple[str, ...]
 
     @cached_property 
     def NUTRITION(self) -> NutritionUnit:
         return sum(
-            (ingredient.NUTRITION * qty for ingredient, qty in self.INGREDIENTS),
+            (r.INGREDIENT.NUTRITION * r.QUANTITY for r in self.INGREDIENTS),
             start=NutritionUnit.zero()
             )
+    
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "INGREDIENTS": [ingr.as_dict() for ingr in self.INGREDIENTS],
+            "KIND": self.KIND.name,
+            "PREP_TIME": self.PREP_TIME,
+            "TAGS": sorted(self.TAGS)
+            }
 
 
 if __name__ == "__main__":

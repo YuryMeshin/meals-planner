@@ -1,5 +1,8 @@
+import json
+import hashlib
 from typing import Any, Self
 from dataclasses import dataclass
+from functools import cached_property
 from units import Unit, NutritionUnit
 
 
@@ -32,19 +35,26 @@ class Ingredient():
             NUTRITION=NutritionUnit.from_dict(ingredient["NUTRITION"]),
             UNIT=Unit.from_dict(ingredient["UNIT"])
             )
+    
+    @cached_property
+    def id(self) -> str:
+        json_str = json.dumps(self.as_dict(), sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(json_str.encode("utf-8")).hexdigest()
 
 
 class IngredientsBook():
 
-    def __init__(self, ingredients: dict[int, Ingredient]):
+    def __init__(self, ingredients: dict[str, Ingredient]):
         self._ingredients = ingredients
 
     def as_dict(self):
         return {key: ing.as_dict() for key, ing in self._ingredients.items()}
     
     def append(self, ingredient: Ingredient):
-        self._ingredients[len(self._ingredients)] = ingredient
+        if ingredient.id in self._ingredients:
+            return
+        self._ingredients[ingredient.id] = ingredient
 
     @classmethod
     def from_dict(cls, book: dict[str, dict[str, Any]]) -> Self:
-        return cls({int(key): Ingredient.from_dict(ing) for key, ing in book.items()})
+        return cls({key: Ingredient.from_dict(ing) for key, ing in book.items()})
