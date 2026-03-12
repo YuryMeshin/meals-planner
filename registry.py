@@ -1,8 +1,8 @@
 import json
 import hashlib
-from typing import Any, Callable, Optional
-from ingredients import Ingredient
-from recipes import Recipe
+from typing import Any, Callable, Optional, Self
+from structures import Ingredient, Recipe
+from utils import args_cast
 
 
 class Hasher():
@@ -21,6 +21,7 @@ class Registry():
         
         match kind:
             case "INGREDIENT": self._cls = Ingredient
+            case "RECIPE": self._cls = Recipe
             case _: raise NotImplementedError
         self._kind = kind
         
@@ -33,11 +34,15 @@ class Registry():
     
     def _validate_entry(self, entry: Any, key: Optional[str]=None) -> str:
         if not isinstance(entry, self._cls):
-            raise TypeError(f"Appended element must be {self._cls} type but {type(entry)} given")
+            raise TypeError(
+                f"Appended element must be {self._cls} type but {type(entry)} given"
+                )
         entry_id = self._hasher(entry.as_dict())
         if key:
             if entry_id != key:
-                raise ValueError(f"Entry hash mismatch, given '{key}', expected '{entry_id}'")
+                raise ValueError(
+                    f"Entry hash mismatch, given '{key}', expected '{entry_id}'"
+                    )
         return entry_id
     
     def append(self, elem: Any):
@@ -68,15 +73,12 @@ class Registry():
         }
     
     @classmethod
-    def from_dict(cls, registry: dict[str, Any]):
-        _expected, _provided = {"KIND", "HASHER", "CONTENT"}, set(registry.keys())
-        _missed, _extra = _expected - _provided, _provided - _expected
-        if _missed | _extra:
-            raise ValueError(
-                f"Incompatible dict given. Missing: {_missed or None}, Extra: {_extra or None}"
-                )
-        return cls(
-            kind=registry["KIND"], 
-            algorithm=registry["HASHER"], 
-            content=registry["CONTENT"]
-            )
+    def from_dict(cls, registry: dict[str, Any]) -> Self:
+        return cls(**args_cast(REGISTRY_SCHEMA, registry))
+
+
+REGISTRY_SCHEMA = {
+    "KIND": ("kind", str),
+    "HASHER": ("algorithm", str),
+    "CONTENT": ("content", dict)
+}
