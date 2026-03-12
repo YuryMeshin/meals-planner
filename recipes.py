@@ -1,9 +1,8 @@
-from typing import Any
+from typing import Any, Self
 from dataclasses import dataclass
-from functools import cached_property
 from enum import Enum
-from units import Unit, NutritionUnit
-from ingredients import Ingredient
+from units import NutritionUnit
+from utils import args_cast
 
 
 class MealKind(Enum):
@@ -14,38 +13,36 @@ class MealKind(Enum):
 
 
 @dataclass(frozen=True)
-class RecipeIngredient():
-    INGREDIENT: Ingredient
-    QUANTITY: float
-
-    def as_dict(self) -> dict[str, float]:
-        return {self.INGREDIENT.id: self.QUANTITY}
-
-
-@dataclass(frozen=True)
 class Recipe():
-    INGREDIENTS: tuple[RecipeIngredient, ...]
+    INGREDIENTS: dict[str, float]
     KIND: MealKind
     PREP_TIME: int
     TAGS: tuple[str, ...]
-
-    @cached_property 
-    def NUTRITION(self) -> NutritionUnit:
+ 
+    def nutrition(self, mapper) -> NutritionUnit:
         return sum(
-            (r.INGREDIENT.NUTRITION * r.QUANTITY for r in self.INGREDIENTS),
+            (mapper[key].NUTRITION * quantity for key, quantity in self.INGREDIENTS.items()),
             start=NutritionUnit.zero()
             )
     
     def as_dict(self) -> dict[str, Any]:
         return {
-            "INGREDIENTS": [ingr.as_dict() for ingr in self.INGREDIENTS],
+            "INGREDIENTS": {key: self.INGREDIENTS[key] for key in sorted(self.INGREDIENTS)},
             "KIND": self.KIND.name,
             "PREP_TIME": self.PREP_TIME,
             "TAGS": sorted(self.TAGS)
             }
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Self:
+        args = args_cast(RECIPE_SCHEMA, data)
+        args["KIND"] = MealKind[args["KIND"]]
+        return cls(**args)
 
-
-if __name__ == "__main__":
-    ntr = NutritionUnit._ZERO
-    ing = Ingredient(NAME="tmp", NUTRITION=ntr, UNIT=Unit(0, "NULL"))
-    print(ing.as_dict())
+    
+RECIPE_SCHEMA = {
+    "INGREDIENTS": ("INGREDIENTS", dict),
+    "KIND": ("KIND", str),
+    "PREP_TIME": ("PREP_TIME", float),
+    "TAGS": ("TAGS", tuple)
+}

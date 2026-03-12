@@ -1,11 +1,17 @@
 from typing import Any, Self
 from dataclasses import dataclass, fields
+from utils import args_cast
 
 
 @dataclass(frozen=True)
 class Unit():
     QUANTITY: float
     UNIT: str
+
+    def __post_init__(self):
+        if self.QUANTITY < 0:
+            _template = "Negative quantities are not allowed but given {}"
+            raise ValueError(_template.format(self.QUANTITY))
 
     def __add__(self, other: Self) -> Self:
         if not isinstance(other, type(self)):
@@ -15,32 +21,19 @@ class Unit():
         return type(self)(QUANTITY=self.QUANTITY + other.QUANTITY, UNIT=self.UNIT)
     
     def __mul__(self, quantity: float) -> Self:
-        if quantity < 0:
-            raise ValueError(f"Negative quantities are not allowed but given {quantity}")
         return type(self)(QUANTITY=self.QUANTITY * quantity, UNIT=self.UNIT)
     
     @classmethod
     def from_tuple(cls, unit_tuple: tuple[float, str]) -> Self:
         quantity, unit = unit_tuple
-        if quantity < 0:
-            raise ValueError(f"Negative quantities are not allowed but {quantity} given")
         return cls(QUANTITY=quantity, UNIT=unit)
     
     @classmethod
     def from_dict(cls, unit_dict: dict[str, Any]) -> Self:
-        expected, provided = {"QUANTITY", "UNIT"}, set(unit_dict.keys())
-        _missed, _extra = expected - provided, provided - expected
-        if _missed | _extra:
-            raise ValueError(
-                f"Incompatible dict given. Missing: {_missed or None}, Extra: {_extra or None}"
-                )
-        return cls(**unit_dict)
+        return cls(**args_cast(UNIT_SCHEMA, unit_dict))
     
     def as_dict(self) -> dict[str, Any]:
-        return {
-            "QUANTITY": self.QUANTITY,
-            "UNIT": self.UNIT
-        }
+        return {"QUANTITY": self.QUANTITY, "UNIT": self.UNIT}
     
     def __str__(self) -> str:
         return f"{self.QUANTITY:.3f} {self.UNIT}"
@@ -57,18 +50,19 @@ class NutritionUnit():
     SODIUM: float
     SATURATED_FAT: float
 
+    def __post_init__(self):
+        for f in self._FIELDS:
+            value = getattr(self, f)
+            if value < 0:
+                _template = "Negative nutrients are not allowed but given '{}' is set {}"
+                raise ValueError(_template.format(f, value))
+
     def as_dict(self) -> dict[str, float]:
         return {key: self[key] for key in type(self)._FIELDS}
 
     @classmethod
-    def from_dict(cls, nutrients: dict[str, float]) -> NutritionUnit:
-        expected, provided = set(cls._FIELDS), set(nutrients.keys())
-        if provided != expected:
-            missing, extra = expected - provided, provided - expected
-            raise ValueError(
-                f"Nutrition schema mismatch.\nMissing: {missing or None}, Extra: {extra or None}"
-            )
-        return cls(**nutrients)
+    def from_dict(cls, nutrients: dict[str, float]) -> Self:
+        return cls(**args_cast(NUTRITION_SCHEMA, nutrients))
     
     def __getitem__(self, key: str) -> float:
         expected = type(self)._FIELDS
@@ -82,10 +76,6 @@ class NutritionUnit():
         return type(self)(**{key: self[key] + other[key] for key in type(self)._FIELDS})
     
     def __mul__(self, quantity: float) -> Self:
-        if quantity < 0:
-            raise ValueError(
-                f"Negative quantities are not allowed but value {quantity} given"
-                )
         return type(self)(**{key: self[key] * quantity for key in type(self)._FIELDS})
 
     @classmethod
@@ -98,3 +88,5 @@ class NutritionUnit():
 
 NutritionUnit._FIELDS = tuple(f.name for f in fields(NutritionUnit))
 NutritionUnit._ZERO = NutritionUnit(**{f: 0 for f in NutritionUnit._FIELDS})
+NUTRITION_SCHEMA = {f: (f, float) for f in NutritionUnit._FIELDS}
+UNIT_SCHEMA = {"QUANTITY": ("QUANTITY", float), "UNIT": ("UNIT", str)}
